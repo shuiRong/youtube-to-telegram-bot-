@@ -22,16 +22,29 @@ defmodule YoutubeBot.Bot do
     answer(context, "Here is your help")
   end
 
+  # 处理用户消息
   def handle({:text, text, _msg}, context) do
+    user_id = context.update.message.chat.id
+    whitelist = Application.fetch_env!(:youtube_bot, :bot_white_list)
+    is_allowed = user_id in whitelist
+
+    handle_text(text, context, is_allowed)
+  end
+
+  def handle_text(text, context, true) do
     case YoutubeBot.get_video_id(text) do
       {:ok, video_id} ->
         YoutubeBot.convert_to_mp3(
           video_id,
-          Application.fetch_env!(:youtube_bot, :youtube_channel_id)
+          Application.fetch_env!(:youtube_bot, :bot_channel_id)
         )
 
       {:error, _} ->
         answer(context, "无效的YouTube链接")
     end
+  end
+
+  def handle_text(_text, context, false) do
+    answer(context, "您没有权限使用此Bot")
   end
 end

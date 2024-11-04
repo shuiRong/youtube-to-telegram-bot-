@@ -16,6 +16,7 @@
    - `YOUTUBE_API_KEY`：你的 YouTube API 密钥
    - `TELEGRAM_BOT_TOKEN`：你的 Telegram Bot Token
    - `YOUTUBE_CHANNEL_ID`：你要监控的 YouTube 频道 ID
+   - `BOT_WHITE_LIST`：允许使用该 Bot 的 Telegram 用户 ID，多个用英文逗号隔开，防止非授权用户使用
 
 ### 开始运行
 
