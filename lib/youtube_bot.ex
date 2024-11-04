@@ -21,6 +21,11 @@ defmodule YoutubeBot do
         |> String.replace("https://youtu.be/", "")
         |> extract_parameter("?")
 
+      String.starts_with?(url, "https://www.youtube.com/live/") ->
+        url
+        |> String.replace("https://www.youtube.com/live/", "")
+        |> extract_parameter("?")
+
       true ->
         {:error, "无效的YouTube链接"}
     end
@@ -93,7 +98,6 @@ defmodule YoutubeBot do
 
   def youtube_search() do
     api_key = Application.fetch_env!(:youtube_bot, :youtube_api_key)
-    IO.puts("api_key: #{api_key}")
     url = "https://www.googleapis.com/youtube/v3/search"
 
     query = [

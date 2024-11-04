@@ -79,7 +79,7 @@ defmodule YoutubeBot.Client do
         num
 
       :error ->
-        Logger.error("解析#{unit}失败: #{str}")
+        Logger.warning("解析#{unit}失败: #{str}")
         0
     end
   end
