@@ -24,7 +24,7 @@ defmodule YoutubeBot.Bot do
 
   # 处理用户消息
   def handle({:text, text, _msg}, context) do
-    user_id = context.update.message.chat.id
+    user_id = context.update.message.from.id
     whitelist = Application.fetch_env!(:youtube_bot, :bot_white_list)
     is_allowed = user_id in whitelist
 
