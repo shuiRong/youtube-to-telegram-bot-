@@ -16,8 +16,9 @@ A Telegram Bot that converts YouTube videos to MP3 format and sends them to a sp
 3. Configure environment variables:
 
    - `YOUTUBE_API_KEY`: Your YouTube API key
-   - `TELEGRAM_BOT_TOKEN`: Your Telegram Bot Token
    - `YOUTUBE_CHANNEL_ID`: The YouTube channel ID you want to monitor
+   - `TELEGRAM_BOT_TOKEN`: Your Telegram Bot Token
+   - `BOT_CHANNEL_ID`: The Telegram channel ID you want to send the converted videos to
    - `BOT_WHITE_LIST`: Telegram user IDs allowed to use this Bot, separated by commas, to prevent unauthorized usage
 
 ### Getting Started
