@@ -1,4 +1,4 @@
-defmodule YoutubeBot.Client do
+defmodule YouTubeBot.Downloader do
   require Logger
 
   @moduledoc """
@@ -89,7 +89,7 @@ defmodule YoutubeBot.Client do
   # 重试延迟(毫秒)
   @retry_delay 1000
 
-  def download_video_with_retry(video_id, temp_dir, file_path) do
+  def download_video_with_retry(file_path, video_id, temp_dir) do
     download_video(video_id, temp_dir, file_path, @max_retries)
   end
 
@@ -103,7 +103,7 @@ defmodule YoutubeBot.Client do
            "-o",
            "#{Path.basename(file_path)}",
            "-q",
-           "139",
+           "133",
            video_id
          ]) do
       {_, 0} ->

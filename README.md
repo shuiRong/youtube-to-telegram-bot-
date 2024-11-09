@@ -1,4 +1,4 @@
-# YoutubeBot
+# YouTubeBot
 
 A Telegram Bot that converts YouTube videos to MP3 format and sends them to a specified Telegram channel (the bot needs to be set as an administrator of that channel).
 

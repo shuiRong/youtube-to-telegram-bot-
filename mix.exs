@@ -1,4 +1,4 @@
-defmodule YoutubeBot.MixProject do
+defmodule YouTubeBot.MixProject do
   use Mix.Project
 
   def project do
@@ -15,7 +15,7 @@ defmodule YoutubeBot.MixProject do
   def application do
     [
       extra_applications: [:logger],
-      mod: {YoutubeBot.Application, []}
+      mod: {YouTubeBot.Application, []}
     ]
   end
 

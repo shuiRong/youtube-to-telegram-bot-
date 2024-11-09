@@ -1,9 +1,10 @@
-defmodule YoutubeBot do
+defmodule YouTubeBot do
   require Logger
 
   @moduledoc """
-  `YoutubeBot` 模块用于处理YouTube视频相关操作，如提取视频ID、获取视频信息和转换视频格式。
+  `YouTubeBot` 模块用于处理YouTube视频相关操作，如提取视频ID、获取视频信息和转换视频格式。
   """
+
   @doc """
   从 YouTube 链接中提取视频 ID。支持以下格式：
   - 标准链接：https://www.youtube.com/watch?v=7y8eotcYgy0&t=3s
@@ -31,6 +32,28 @@ defmodule YoutubeBot do
     end
   end
 
+  @doc """
+  将YouTube视频转换为MP3并发送给用户。
+
+  ## 参数
+    - `video_id`: 视频的ID
+    - `channel_id`: 聊天ID，用于发送消息
+    - `chat_id`: 聊天ID，用于发送消息
+  """
+  def convert_to_mp3(video_id, channel_id, chat_id) do
+    YouTubeBot.Downloader.get_video_info(video_id)
+    |> case do
+      {:ok, title, duration, _output} ->
+        System.tmp_dir!()
+        |> Path.join("#{sanitize_filename(title)}.m4a")
+        |> download_and_process(video_id, channel_id, title, duration, chat_id)
+
+      {:error, reason} ->
+        Logger.error("处理过程中出现错误: #{inspect(reason)}")
+        ExGram.send_message(chat_id, "处理过程中出现错误: #{inspect(reason)}")
+    end
+  end
+
   defp extract_parameter(rest, delimiter) do
     rest
     |> String.split(delimiter, parts: 2, trim: true)
@@ -41,42 +64,35 @@ defmodule YoutubeBot do
     end
   end
 
-  @doc """
-  将YouTube视频转换为MP3并发送给用户。
+  defp download_and_process(file_path, video_id, channel_id, title, duration, chat_id) do
+    file_path
+    |> YouTubeBot.Downloader.download_video_with_retry(video_id, System.tmp_dir!())
+    |> case do
+      :ok ->
+        send_file(file_path, channel_id, title, duration, chat_id)
 
-  ## 参数
-    - `video_id`: 视频的ID
-    - `context`: 上下文信息，用于发送消息
-  """
-  def convert_to_mp3(video_id, chat_id) do
-    with {:ok, title, duration, _output} <- YoutubeBot.Client.get_video_info(video_id),
-         temp_dir = System.tmp_dir!(),
-         file_path = Path.join(temp_dir, "#{sanitize_filename(title)}.m4a"),
-         :ok <- YoutubeBot.Client.download_video_with_retry(video_id, temp_dir, file_path),
-         :ok <- send_file(chat_id, file_path, title, duration) do
-      :ok
-    else
       {:error, reason} ->
         Logger.error("处理过程中出现错误: #{inspect(reason)}")
-        ExGram.send_message(chat_id, "处理过程中出现错误，请稍后重试")
+        ExGram.send_message(chat_id, "处理过程中出现错误: #{inspect(reason)}")
     end
   end
 
-  defp send_file(chat_id, file_path, title, duration) do
-    case ExGram.send_audio(
-           chat_id,
-           {:file, file_path},
-           caption: title,
-           duration: duration
-         ) do
+  defp send_file(file_path, channel_id, title, duration, chat_id) do
+    ExGram.send_audio(
+      channel_id,
+      {:file, file_path},
+      caption: title,
+      duration: duration
+    )
+    |> case do
       {:ok, _} ->
-        Logger.info("文件发送成功")
+        Logger.info("文件发送成功: #{file_path}")
         File.rm(file_path)
         :ok
 
       {:error, reason} ->
         Logger.error("发送文件失败: #{inspect(reason)}")
-        ExGram.send_message(chat_id, "发送文件失败,请稍后重试")
+        ExGram.send_message(chat_id, "发送文件失败: #{inspect(reason)}")
         File.rm(file_path)
         {:error, reason}
     end
@@ -97,10 +113,14 @@ defmodule YoutubeBot do
   end
 
   def youtube_search() do
-    api_key = Application.fetch_env!(:youtube_bot, :youtube_api_key)
-    url = "https://www.googleapis.com/youtube/v3/search"
+    Application.fetch_env!(:youtube_bot, :youtube_api_key)
+    |> build_query()
+    |> Tesla.get(client(), "https://www.googleapis.com/youtube/v3/search")
+    |> handle_search_response()
+  end
 
-    query = [
+  defp build_query(api_key) do
+    [
       key: api_key,
       channelId: Application.fetch_env!(:youtube_bot, :youtube_channel_id),
       part: "snippet,id",
@@ -109,52 +129,59 @@ defmodule YoutubeBot do
       eventType: "completed",
       maxResults: 3
     ]
-
-    case Tesla.get(client(), url, query: query) do
-      {:ok, %Tesla.Env{status: 200, body: body}} ->
-        videos =
-          body["items"]
-          |> Enum.map(fn item ->
-            %{
-              title: item["snippet"]["title"],
-              published_at: item["snippet"]["publishedAt"],
-              video_id: item["id"]["videoId"]
-            }
-          end)
-
-        one_hour_ago = DateTime.utc_now() |> DateTime.add(-3600, :second)
-
-        recent_videos =
-          Enum.filter(videos, fn video ->
-            {:ok, published_at, _} = DateTime.from_iso8601(video.published_at)
-            DateTime.compare(published_at, one_hour_ago) == :gt
-          end)
-
-        if length(recent_videos) > 0 do
-          Logger.info("发现 #{length(recent_videos)} 个新视频")
-
-          Enum.each(recent_videos, fn video ->
-            Logger.info("""
-            处理新视频:
-            标题: #{video.title}
-            发布时间: #{video.published_at}
-            视频ID: #{video.video_id}
-            ---
-            """)
-
-            convert_to_mp3(video.video_id, -1_002_053_570_560)
-          end)
-        end
-
-        {:ok, videos}
-
-      {:ok, %Tesla.Env{status: status, body: body}} ->
-        Logger.error("YouTube API 返回错误: #{status}, #{inspect(body)}")
-        {:error, "API 请求失败: #{status}"}
-
-      {:error, reason} ->
-        Logger.error("YouTube API 请求失败: #{inspect(reason)}")
-        {:error, reason}
-    end
   end
+
+  defp handle_search_response({:ok, %Tesla.Env{status: 200, body: body}}) do
+    body["items"]
+    |> Enum.map(fn item ->
+      %{
+        title: item["snippet"]["title"],
+        published_at: item["snippet"]["publishedAt"],
+        video_id: item["id"]["videoId"]
+      }
+    end)
+    |> filter_recent_videos()
+    |> notify_and_convert()
+
+    {:ok, body["items"]}
+  end
+
+  defp handle_search_response({:ok, %Tesla.Env{status: status, body: body}}) do
+    Logger.error("YouTube API 返回错误: #{status}, #{inspect(body)}")
+    {:error, "API 请求失败: #{status}"}
+  end
+
+  defp handle_search_response({:error, reason}) do
+    Logger.error("YouTube API 请求失败: #{inspect(reason)}")
+    {:error, reason}
+  end
+
+  defp filter_recent_videos(videos) do
+    one_hour_ago = DateTime.utc_now() |> DateTime.add(-3600, :second)
+
+    videos
+    |> Enum.filter(fn video ->
+      {:ok, published_at, _} = DateTime.from_iso8601(video.published_at)
+      DateTime.compare(published_at, one_hour_ago) == :gt
+    end)
+  end
+
+  defp notify_and_convert(recent_videos) when length(recent_videos) > 0 do
+    Logger.info("发现 #{length(recent_videos)} 个新视频")
+
+    recent_videos
+    |> Enum.each(fn video ->
+      Logger.info("""
+      处理新视频:
+      标题: #{video.title}
+      发布时间: #{video.published_at}
+      视频ID: #{video.video_id}
+      ---
+      """)
+
+      convert_to_mp3(video.video_id, -1_002_053_570_560, video.chat_id)
+    end)
+  end
+
+  defp notify_and_convert(_), do: :ok
 end

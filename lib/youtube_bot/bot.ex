@@ -1,4 +1,4 @@
-defmodule YoutubeBot.Bot do
+defmodule YouTubeBot.Bot do
   require Logger
 
   @bot :youtube_bot
@@ -32,11 +32,12 @@ defmodule YoutubeBot.Bot do
   end
 
   def handle_text(text, context, true) do
-    case YoutubeBot.get_video_id(text) do
+    case YouTubeBot.get_video_id(text) do
       {:ok, video_id} ->
-        YoutubeBot.convert_to_mp3(
+        YouTubeBot.convert_to_mp3(
           video_id,
-          Application.fetch_env!(:youtube_bot, :bot_channel_id)
+          Application.fetch_env!(:youtube_bot, :bot_channel_id),
+          context.update.message.chat.id
         )
 
       {:error, _} ->
