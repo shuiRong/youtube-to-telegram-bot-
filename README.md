@@ -52,7 +52,7 @@ A Telegram Bot that converts YouTube videos to MP3 format and sends them to a sp
 
 - [youtubedr](https://github.com/kkdai/youtube) tool for downloading MP3 format from YouTube videos
 - [ExGram](https://github.com/rockneurotiko/ex_gram) library for interacting with Telegram API
-- [Tesla](https://github.com/teamon/tesla): HTTP client
+- [Req](https://github.com/wojtekmach/req) HTTP client
 - [Quantum](https://github.com/quantum-elixir/quantum-core): Job scheduler
 
 ## Contributing

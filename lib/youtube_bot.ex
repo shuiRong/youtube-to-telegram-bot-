@@ -104,35 +104,26 @@ defmodule YouTubeBot do
     |> String.trim()
   end
 
-  defp client do
-    Tesla.client([
-      {Tesla.Middleware.Retry, delay: 1000, max_retries: 3},
-      Tesla.Middleware.Logger,
-      Tesla.Middleware.JSON
-    ])
+  def download_latest_videos() do
+    fetch_latest_videos() |> handle_search_response()
   end
 
-  def youtube_search() do
-    Application.fetch_env!(:youtube_bot, :youtube_api_key)
-    |> build_query()
-    |> Tesla.get(client(), "https://www.googleapis.com/youtube/v3/search")
-    |> handle_search_response()
+  def fetch_latest_videos() do
+    Req.get!("https://www.googleapis.com/youtube/v3/search",
+      params: [
+        key: Application.fetch_env!(:youtube_bot, :youtube_api_key),
+        channelId: Application.fetch_env!(:youtube_bot, :youtube_channel_id),
+        part: "snippet,id",
+        order: "date",
+        type: "video",
+        eventType: "completed",
+        maxResults: 3
+      ]
+    ).body["items"]
   end
 
-  defp build_query(api_key) do
-    [
-      key: api_key,
-      channelId: Application.fetch_env!(:youtube_bot, :youtube_channel_id),
-      part: "snippet,id",
-      order: "date",
-      type: "video",
-      eventType: "completed",
-      maxResults: 3
-    ]
-  end
-
-  defp handle_search_response({:ok, %Tesla.Env{status: 200, body: body}}) do
-    body["items"]
+  defp handle_search_response(items) do
+    items
     |> Enum.map(fn item ->
       %{
         title: item["snippet"]["title"],
@@ -142,18 +133,6 @@ defmodule YouTubeBot do
     end)
     |> filter_recent_videos()
     |> notify_and_convert()
-
-    {:ok, body["items"]}
-  end
-
-  defp handle_search_response({:ok, %Tesla.Env{status: status, body: body}}) do
-    Logger.error("YouTube API 返回错误: #{status}, #{inspect(body)}")
-    {:error, "API 请求失败: #{status}"}
-  end
-
-  defp handle_search_response({:error, reason}) do
-    Logger.error("YouTube API 请求失败: #{inspect(reason)}")
-    {:error, reason}
   end
 
   defp filter_recent_videos(videos) do

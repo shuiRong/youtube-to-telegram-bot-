@@ -24,6 +24,7 @@ defmodule YouTubeBot.MixProject do
     [
       {:ex_gram, "~> 0.53"},
       {:jason, ">= 1.0.0"},
+      {:req, "~> 0.5.7"},
       {:tesla, "~> 1.2"},
       {:hackney, "~> 1.12"},
       {:quantum, "~> 3.0"}

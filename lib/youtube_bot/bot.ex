@@ -8,18 +8,16 @@ defmodule YouTubeBot.Bot do
     setup_commands: true
 
   command("start")
-  command("help", description: "Print the bot's help")
 
   middleware(ExGram.Middleware.IgnoreUsername)
 
   def bot(), do: @bot
 
   def handle({:command, :start, _msg}, context) do
-    answer(context, "Hi!")
-  end
-
-  def handle({:command, :help, _msg}, context) do
-    answer(context, "Here is your help")
+    answer(
+      context,
+      "Hi! This bot is for demo only. It's open source, please visit https://github.com/shuiRong/youtube-to-telegram-bot-elixir for more information."
+    )
   end
 
   # 处理用户消息
@@ -32,6 +30,8 @@ defmodule YouTubeBot.Bot do
   end
 
   def handle_text(text, context, true) do
+    answer(context, "收到请求，开始处理...")
+
     case YouTubeBot.get_video_id(text) do
       {:ok, video_id} ->
         YouTubeBot.convert_to_mp3(
@@ -46,6 +46,9 @@ defmodule YouTubeBot.Bot do
   end
 
   def handle_text(_text, context, false) do
-    answer(context, "您没有权限使用此Bot")
+    answer(
+      context,
+      "This bot is for demo only. It's open source, please visit https://github.com/shuiRong/youtube-to-telegram-bot-elixir for more information."
+    )
   end
 end

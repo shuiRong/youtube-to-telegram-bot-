@@ -52,7 +52,7 @@
 
 - [youtubedr](https://github.com/kkdai/youtube) 工具从 YouTube 下载视频的 MP3 格式。
 - [ExGram](https://github.com/rockneurotiko/ex_gram) 库与 Telegram API 交互。
-- [Tesla](https://github.com/teamon/tesla)：HTTP 客户端
+- [Req](https://github.com/wojtekmach/req)：HTTP 客户端
 - [Quantum](https://github.com/quantum-elixir/quantum-core)：定时任务调度
 
 ## 贡献

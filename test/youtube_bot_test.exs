@@ -31,4 +31,8 @@ defmodule YouTubeBotTest do
     url = "https://www.youtube.com/watch?invalid"
     assert YouTubeBot.get_video_id(url) == {:error, "无效的YouTube链接"}
   end
+
+  test "fetch_latest_videos/0" do
+    assert Enum.count(YouTubeBot.fetch_latest_videos()) > 0
+  end
 end

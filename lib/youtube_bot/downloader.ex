@@ -103,7 +103,7 @@ defmodule YouTubeBot.Downloader do
            "-o",
            "#{Path.basename(file_path)}",
            "-q",
-           "133",
+           "139",
            video_id
          ]) do
       {_, 0} ->
