@@ -1,6 +1,6 @@
 import Config
 
-config :logger, level: :info, encoding: :utf8
+config :logger, level: :warn
 
 config :youtube_bot, YouTubeBot.Scheduler, debug_logging: false
 

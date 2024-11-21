@@ -22,7 +22,7 @@ defmodule YouTubeBot.Downloader do
   defp parse_video_info(output) do
     with {:ok, title} <- extract_title(output),
          {:ok, duration} <- extract_duration(output) do
-      {:ok, title, duration, output}
+      {:ok, title, duration}
     end
   end
 

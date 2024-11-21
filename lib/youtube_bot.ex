@@ -32,6 +32,19 @@ defmodule YouTubeBot do
     end
   end
 
+  def convert_to_mp3(video_id, channel_id) do
+    YouTubeBot.Downloader.get_video_info(video_id)
+    |> case do
+      {:ok, title, duration} ->
+        System.tmp_dir!()
+        |> Path.join("#{sanitize_filename(title)}.m4a")
+        |> download_and_process(video_id, channel_id, title, duration)
+
+      {:error, reason} ->
+        Logger.error("处理过程中出现错误: #{inspect(reason)}")
+    end
+  end
+
   @doc """
   将YouTube视频转换为MP3并发送给用户。
 
@@ -43,7 +56,7 @@ defmodule YouTubeBot do
   def convert_to_mp3(video_id, channel_id, chat_id) do
     YouTubeBot.Downloader.get_video_info(video_id)
     |> case do
-      {:ok, title, duration, _output} ->
+      {:ok, title, duration} ->
         System.tmp_dir!()
         |> Path.join("#{sanitize_filename(title)}.m4a")
         |> download_and_process(video_id, channel_id, title, duration, chat_id)
@@ -64,6 +77,18 @@ defmodule YouTubeBot do
     end
   end
 
+  defp download_and_process(file_path, video_id, channel_id, title, duration) do
+    file_path
+    |> YouTubeBot.Downloader.download_video_with_retry(video_id, System.tmp_dir!())
+    |> case do
+      :ok ->
+        send_file(file_path, channel_id, title, duration)
+
+      {:error, reason} ->
+        Logger.error("处理过程中出现错误: #{inspect(reason)}")
+    end
+  end
+
   defp download_and_process(file_path, video_id, channel_id, title, duration, chat_id) do
     file_path
     |> YouTubeBot.Downloader.download_video_with_retry(video_id, System.tmp_dir!())
@@ -74,6 +99,26 @@ defmodule YouTubeBot do
       {:error, reason} ->
         Logger.error("处理过程中出现错误: #{inspect(reason)}")
         ExGram.send_message(chat_id, "处理过程中出现错误: #{inspect(reason)}")
+    end
+  end
+
+  defp send_file(file_path, channel_id, title, duration) do
+    ExGram.send_audio(
+      channel_id,
+      {:file, file_path},
+      caption: title,
+      duration: duration
+    )
+    |> case do
+      {:ok, _} ->
+        Logger.info("文件发送成功: #{file_path}")
+        File.rm(file_path)
+        :ok
+
+      {:error, reason} ->
+        Logger.error("发送文件失败: #{inspect(reason)}")
+        File.rm(file_path)
+        {:error, reason}
     end
   end
 
@@ -137,12 +182,19 @@ defmodule YouTubeBot do
 
   defp filter_recent_videos(videos) do
     one_hour_ago = DateTime.utc_now() |> DateTime.add(-3600, :second)
+    IO.puts("one_hour_ago: #{one_hour_ago}")
+    IO.puts("videos: #{inspect(videos)}")
 
-    videos
-    |> Enum.filter(fn video ->
-      {:ok, published_at, _} = DateTime.from_iso8601(video.published_at)
-      DateTime.compare(published_at, one_hour_ago) == :gt
-    end)
+    filtered_videos =
+      videos
+      |> Enum.filter(fn video ->
+        {:ok, published_at, _} = DateTime.from_iso8601(video.published_at)
+        IO.puts("published_at: #{published_at}")
+        DateTime.compare(published_at, one_hour_ago) == :gt
+      end)
+
+    IO.puts("filtered_videos: #{inspect(filtered_videos)}")
+    filtered_videos
   end
 
   defp notify_and_convert(recent_videos) when length(recent_videos) > 0 do
@@ -158,7 +210,7 @@ defmodule YouTubeBot do
       ---
       """)
 
-      convert_to_mp3(video.video_id, -1_002_053_570_560, video.chat_id)
+      convert_to_mp3(video.video_id, -1_002_053_570_560)
     end)
   end
 
