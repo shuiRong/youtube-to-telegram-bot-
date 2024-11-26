@@ -35,10 +35,10 @@ defmodule YouTubeBot do
   def convert_to_mp3(video_id, channel_id) do
     YouTubeBot.Downloader.get_video_info(video_id)
     |> case do
-      {:ok, title, duration} ->
+      {:ok, title, duration, audio_id} ->
         System.tmp_dir!()
         |> Path.join("#{sanitize_filename(title)}.m4a")
-        |> download_and_process(video_id, channel_id, title, duration)
+        |> download_and_process(video_id, channel_id, title, duration, audio_id)
 
       {:error, reason} ->
         Logger.error("处理过程中出现错误: #{inspect(reason)}")
@@ -56,10 +56,10 @@ defmodule YouTubeBot do
   def convert_to_mp3(video_id, channel_id, chat_id) do
     YouTubeBot.Downloader.get_video_info(video_id)
     |> case do
-      {:ok, title, duration} ->
+      {:ok, title, duration, audio_id} ->
         System.tmp_dir!()
         |> Path.join("#{sanitize_filename(title)}.m4a")
-        |> download_and_process(video_id, channel_id, title, duration, chat_id)
+        |> download_and_process(video_id, channel_id, title, duration, audio_id, chat_id)
 
       {:error, reason} ->
         Logger.error("处理过程中出现错误: #{inspect(reason)}")
@@ -77,21 +77,21 @@ defmodule YouTubeBot do
     end
   end
 
-  defp download_and_process(file_path, video_id, channel_id, title, duration) do
+  defp download_and_process(file_path, video_id, channel_id, title, duration, audio_id) do
     file_path
-    |> YouTubeBot.Downloader.download_video_with_retry(video_id, System.tmp_dir!())
+    |> YouTubeBot.Downloader.download_video_with_retry(video_id, audio_id, System.tmp_dir!())
     |> case do
       :ok ->
-        send_file(file_path, channel_id, title, duration)
+        send_file(file_path, channel_id, title, duration, audio_id)
 
       {:error, reason} ->
         Logger.error("处理过程中出现错误: #{inspect(reason)}")
     end
   end
 
-  defp download_and_process(file_path, video_id, channel_id, title, duration, chat_id) do
+  defp download_and_process(file_path, video_id, channel_id, title, duration, audio_id, chat_id) do
     file_path
-    |> YouTubeBot.Downloader.download_video_with_retry(video_id, System.tmp_dir!())
+    |> YouTubeBot.Downloader.download_video_with_retry(video_id, audio_id, System.tmp_dir!())
     |> case do
       :ok ->
         send_file(file_path, channel_id, title, duration, chat_id)
