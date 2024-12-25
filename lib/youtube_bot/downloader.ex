@@ -94,9 +94,18 @@ defmodule YouTubeBot.Downloader do
   defp extract_audio_id(output) do
     # 提取所有音频的itag和大小
     audio_info =
-      Regex.scan(~r/\|\s+(\d+)\s+\|.*\|\s+(\d+\.?\d*)\s+\|\s+\d+\s+\|\s+audio\/.*\|/, output)
-      |> Enum.map(fn [_, itag, size] ->
-        {itag, String.to_float(size)}
+      Regex.scan(
+        ~r/\|\s+(\d+)\s+\|\s+\d+\s+\|\s+[^|]*\|\s+([^|]*)\|\s+\d+\s+\|\s+(\d+\.?\d*)\s+\|\s+\d+\s+\|\s+audio\/.*\|/,
+        output
+      )
+      |> Enum.map(fn [_, itag, quality, size] ->
+        {String.trim(itag), String.trim(quality), String.to_float(size)}
+      end)
+      |> Enum.filter(fn {_, quality, _} ->
+        quality != ""
+      end)
+      |> Enum.map(fn {itag, _, size} ->
+        {itag, size}
       end)
 
     case audio_info do
@@ -152,7 +161,7 @@ defmodule YouTubeBot.Downloader do
   end
 
   defp download_video(video_id, temp_dir, file_path, audio_id, retries_left) do
-    Logger.info("开始下载视频: #{video_id}, 剩余重试次数: #{retries_left}")
+    Logger.info("开始下载视频: #{video_id}, audio_id: #{audio_id}, 剩余重试次数: #{retries_left}")
 
     case System.cmd("youtubedr", [
            "download",
