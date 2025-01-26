@@ -11,4 +11,6 @@ config :youtube_bot, YouTubeBot.Scheduler,
     # {"@minutely", {YouTubeBot.Tasks, :your_hourly_task, []}}
   ]
 
+config :tesla, adapter: Tesla.Adapter.Hackney
+
 import_config "#{config_env()}.exs"
